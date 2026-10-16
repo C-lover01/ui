@@ -1,7 +1,6 @@
 
 /* =========================================
-   DEVFEST BOOTH PORTAL — COMPLETE CSS
-   Desktop + Mobile Responsive
+   DEVFEST BOOTH PORTAL — LOGIN PAGE CSS
 ========================================= */
 
 :root {
@@ -68,7 +67,6 @@ body {
     pointer-events: none;
 
     background:
-        /* LEFT RED */
         radial-gradient(
             ellipse 24% 23% at 0% 49%,
             rgba(255, 79, 65, 0.96) 0%,
@@ -76,8 +74,6 @@ body {
             rgba(255, 125, 106, 0.42) 57%,
             transparent 100%
         ),
-
-        /* LEFT GREEN */
         radial-gradient(
             ellipse 29% 25% at 19% 66%,
             rgba(54, 207, 148, 0.95) 0%,
@@ -85,8 +81,6 @@ body {
             rgba(107, 222, 174, 0.4) 65%,
             transparent 100%
         ),
-
-        /* BOTTOM-LEFT BLUE */
         radial-gradient(
             ellipse 27% 27% at 1% 85%,
             rgba(29, 43, 139, 0.99) 0%,
@@ -94,8 +88,6 @@ body {
             rgba(51, 68, 158, 0.5) 64%,
             transparent 100%
         ),
-
-        /* BOTTOM YELLOW */
         radial-gradient(
             ellipse 25% 24% at 30% 95%,
             rgba(255, 226, 91, 0.96) 0%,
@@ -103,8 +95,6 @@ body {
             rgba(255, 240, 174, 0.38) 68%,
             transparent 100%
         ),
-
-        /* TOP-RIGHT RED / ORANGE */
         radial-gradient(
             ellipse 27% 24% at 83% 5%,
             rgba(255, 83, 69, 0.98) 0%,
@@ -112,8 +102,6 @@ body {
             rgba(255, 159, 91, 0.48) 66%,
             transparent 100%
         ),
-
-        /* TOP RIGHT YELLOW */
         radial-gradient(
             ellipse 27% 24% at 100% 5%,
             rgba(255, 226, 91, 0.96) 0%,
@@ -121,9 +109,6 @@ body {
             rgba(255, 240, 174, 0.38) 68%,
             transparent 100%
         ),
-
-
-        /* UPPER-RIGHT BLUE */
         radial-gradient(
             ellipse 23% 24% at 77% 25%,
             rgba(26, 39, 132, 0.98) 0%,
@@ -131,8 +116,6 @@ body {
             rgba(45, 59, 148, 0.45) 65%,
             transparent 100%
         ),
-
-        /* RIGHT GREEN */
         radial-gradient(
             ellipse 27% 26% at 100% 36%,
             rgba(56, 205, 143, 0.95) 0%,
@@ -140,141 +123,13 @@ body {
             rgba(119, 224, 179, 0.38) 68%,
             transparent 100%
         ),
-
         #f8f8f8;
 
     filter: saturate(1.08);
 }
 
 /* =========================================
-   NAVIGATION BAR
-========================================= */
-
-.topbar {
-    position: relative;
-    z-index: 10;
-    width: 100%;
-    height: 82px;
-    padding: 0 38px;
-
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    color: #ffffff;
-    background: var(--navy);
-    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.14);
-}
-
-.brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-
-    color: inherit;
-    text-decoration: none;
-}
-
-/* DEVFEST LOGO MARK */
-
-.brand-mark {
-    position: relative;
-    width: 51px;
-    height: 38px;
-    flex: 0 0 51px;
-}
-
-.mark-piece {
-    position: absolute;
-    width: 23px;
-    height: 13px;
-    border-radius: 5px;
-    transform: rotate(35deg) skewX(-7deg);
-    border: 1px solid rgba(0, 0, 0, 0.28);
-}
-
-.mark-red {
-    background: #f34c3f;
-    left: 2px;
-    top: 6px;
-}
-
-.mark-blue {
-    background: #3297e8;
-    left: 2px;
-    top: 20px;
-}
-
-.mark-green {
-    background: #2eaa50;
-    left: 28px;
-    top: 6px;
-}
-
-.mark-yellow {
-    background: #ffb51b;
-    left: 28px;
-    top: 20px;
-}
-
-.brand-copy {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.05;
-}
-
-.brand-name {
-    color: #ffffff;
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: -0.8px;
-}
-
-.brand-location {
-    color: #ffffff;
-    font-size: 13px;
-    font-weight: 600;
-    margin-top: 3px;
-}
-
-/* NAVIGATION LINKS */
-
-.nav-links {
-    display: flex;
-    align-items: center;
-    gap: 48px;
-}
-
-.nav-links a {
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 650;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.nav-links a.active {
-    padding: 8px 13px;
-    border-radius: 22px;
-    background: var(--green);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.menu-toggle {
-    display: none;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
-    padding: 7px 9px;
-    background: transparent;
-    font-size: 20px;
-    line-height: 1;
-    cursor: pointer;
-}
-
-/* =========================================
-   MAIN CONTENT — CENTERED
+   MAIN CONTENT
 ========================================= */
 
 .main-content {
@@ -289,7 +144,7 @@ body {
 }
 
 /* =========================================
-   EXTRA-LARGE WHITE LOGIN CARD
+   LOGIN CARD
 ========================================= */
 
 .login-card {
@@ -309,35 +164,46 @@ body {
 }
 
 /* =========================================
-   CARD LOGO
+   LOGIN CARD LOGO
 ========================================= */
 
 .card-brand {
     color: var(--navy);
-
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 10px;
-
     margin-bottom: 30px;
 }
 
-.card-brand .brand-mark {
-    transform: scale(1.15);
-    transform-origin: center;
-    margin-right: 3px;
+.card-brand .gdg-logo,
+.card-brand .gdg-top {
+    display: block;
+    width: 60px;
+    height: 52px;
+    object-fit: contain;
+    object-position: center;
+    flex-shrink: 0;
+}
+
+.card-brand .brand-copy {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.05;
 }
 
 .card-brand .brand-name {
     color: var(--navy);
     font-size: 34px;
     font-weight: 800;
+    letter-spacing: -0.8px;
 }
 
 .card-brand .brand-location {
     color: #2bbd79;
     font-size: 16px;
+    font-weight: 600;
+    margin-top: 3px;
 }
 
 /* =========================================
@@ -348,7 +214,6 @@ h1 {
     margin: 0;
     text-align: center;
     color: var(--navy);
-
     font-size: 46px;
     font-weight: 800;
     line-height: 1.2;
@@ -364,7 +229,6 @@ h1 {
     font-size: 14px;
     letter-spacing: 2.5px;
     font-weight: 600;
-
     margin: 17px 0 43px;
 }
 
@@ -379,7 +243,6 @@ h1 {
 .field label {
     display: block;
     margin: 0 0 12px 15px;
-
     font-size: 14px;
     font-weight: 750;
     letter-spacing: 1.5px;
@@ -400,7 +263,6 @@ h1 {
 
     background: #ffffff;
     color: #20245f;
-
     font-size: 18px;
     outline: none;
 
@@ -497,7 +359,6 @@ h1 {
 .form-message {
     margin: 14px 0 0;
     min-height: 18px;
-
     text-align: center;
     font-size: 14px;
     color: #b3261e;
@@ -509,10 +370,8 @@ h1 {
 
 footer {
     margin-top: 20px;
-
     text-align: center;
     color: #707aa6;
-
     font-size: 10px;
     letter-spacing: 1.8px;
     font-weight: 600;
@@ -523,15 +382,12 @@ footer {
 ========================================= */
 
 @media (max-width: 760px) {
-
     .page,
     .site-shell {
         width: 100%;
         min-height: 100vh;
         margin: 0;
     }
-
-    /* MOBILE GRADIENT BACKGROUND */
 
     .site-shell::before {
         top: 70px;
@@ -545,104 +401,33 @@ footer {
                 rgba(255, 78, 65, 0.9) 0%,
                 transparent 76%
             ),
-
             radial-gradient(
                 ellipse 75% 22% at 20% 53%,
                 rgba(54, 207, 148, 0.92) 0%,
                 transparent 78%
             ),
-
             radial-gradient(
                 ellipse 65% 22% at 10% 88%,
                 rgba(28, 43, 139, 0.98) 0%,
                 transparent 78%
             ),
-
             radial-gradient(
                 ellipse 70% 22% at 35% 100%,
                 rgba(255, 226, 91, 0.9) 0%,
                 transparent 78%
             ),
-
             radial-gradient(
                 ellipse 65% 20% at 100% 7%,
                 rgba(255, 82, 68, 0.95) 0%,
                 transparent 76%
             ),
-
             radial-gradient(
                 ellipse 65% 23% at 100% 30%,
                 rgba(54, 204, 143, 0.9) 0%,
                 transparent 78%
             ),
-
             #f8f8f8;
     }
-
-    /* MOBILE HEADER */
-
-    .topbar {
-        height: 70px;
-        padding: 0 19px;
-    }
-
-    .brand {
-        gap: 6px;
-    }
-
-    .brand-mark {
-        transform: scale(0.78);
-        transform-origin: left center;
-        margin-right: -9px;
-    }
-
-    .brand-name {
-        font-size: 21px;
-        letter-spacing: -0.5px;
-    }
-
-    .brand-location {
-        font-size: 11px;
-    }
-
-    /* MOBILE MENU BUTTON */
-
-    .menu-toggle {
-        display: block;
-    }
-
-    .nav-links {
-        display: none;
-
-        position: absolute;
-        top: 70px;
-        left: 0;
-        right: 0;
-
-        padding: 15px 20px 20px;
-
-        flex-direction: column;
-        align-items: stretch;
-        gap: 17px;
-
-        background: var(--navy);
-        box-shadow: 0 5px 8px rgba(0, 0, 0, 0.14);
-    }
-
-    .nav-links.open {
-        display: flex;
-    }
-
-    .nav-links a {
-        padding: 8px;
-        text-align: center;
-    }
-
-    .nav-links a.active {
-        padding: 9px 13px;
-    }
-
-    /* CENTER CARD ON MOBILE */
 
     .main-content {
         min-height: calc(100vh - 70px);
@@ -658,10 +443,14 @@ footer {
         border-radius: 24px;
     }
 
-    /* MOBILE CARD LOGO */
-
     .card-brand {
         margin-bottom: 24px;
+    }
+
+    .card-brand .gdg-logo,
+    .card-brand .gdg-top {
+        width: 48px;
+        height: 43px;
     }
 
     .card-brand .brand-name {
@@ -671,8 +460,6 @@ footer {
     .card-brand .brand-location {
         font-size: 13px;
     }
-
-    /* MOBILE TITLE */
 
     h1 {
         font-size: clamp(28px, 6vw, 38px);
@@ -684,8 +471,6 @@ footer {
         letter-spacing: 1.8px;
         margin: 13px 0 32px;
     }
-
-    /* MOBILE FORM */
 
     .field {
         margin-bottom: 22px;
@@ -722,8 +507,6 @@ footer {
         font-size: 16px;
     }
 
-    /* MOBILE FOOTER */
-
     footer {
         max-width: 340px;
         line-height: 1.8;
@@ -738,20 +521,6 @@ footer {
 ========================================= */
 
 @media (max-width: 400px) {
-
-    .topbar {
-        padding: 0 13px;
-    }
-
-    .brand-name {
-        font-size: 19px;
-    }
-
-    .brand-mark {
-        transform: scale(0.7);
-        margin-right: -12px;
-    }
-
     .main-content {
         padding: 24px 13px;
     }
@@ -759,6 +528,12 @@ footer {
     .login-card {
         padding: 30px 19px 34px;
         border-radius: 21px;
+    }
+
+    .card-brand .gdg-logo,
+    .card-brand .gdg-top {
+        width: 42px;
+        height: 40px;
     }
 
     .card-brand .brand-name {
@@ -810,96 +585,81 @@ footer {
     }
 }
 
-/* =========================================
-   GDG PNG LOGO
-========================================= */
-
-
-
-
-.gdg-logo {
-    display: block;
-    width: 51px;
-    height: 45px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
-
-/* Logo inside the white login card */
-.card-brand .gdg-logo {
-    width: 60px;
-    height: 52px;
-}
-
-/* Mobile logo sizing */
-@media (max-width: 760px) {
-    .gdg-logo {
-        width: 39px;
-        height: 38px;
-    }
-
-    .card-brand .gdg-logo {
-        width: 48px;
-        height: 43px;
-    }
-}
-
-
 
 /* =========================================
-   GDG TOP LOGO — BIGGER SIZE
+   KEYFRAME ANIMATIONS
 ========================================= */
 
-/* Logo beside DevFest in the top navigation */
-.topbar .gdg-top {
-    display: block;
-    width: 75px;
-    height: 70px;
-    object-fit: contain;
-    object-position: center;
-    flex-shrink: 0;
-}
-
-/* Logo inside the white login card */
-.card-brand .gdg-top {
-    display: block;
-    width: 90px;
-    height: 80px;
-    object-fit: contain;
-    object-position: center;
-    flex-shrink: 0;
-}
-
-/* Keep logo and DevFest text aligned */
-.brand,
-.card-brand {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-/* Mobile logo sizes */
-@media (max-width: 760px) {
-    .topbar .gdg-top {
-        width: 55px;
-        height: 52px;
+/* Smooth fade-and-glide entrance */
+@keyframes cardEntrance {
+    0% {
+        opacity: 0;
+        transform: translateY(26px) scale(0.985);
     }
-
-    .card-brand .gdg-top {
-        width: 68px;
-        height: 62px;
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
-/* Extra-small phones */
-@media (max-width: 400px) {
-    .topbar .gdg-top {
-        width: 45px;
-        height: 44px;
+/* Subtle staggered fade for inner elements */
+@keyframes fadeSlideUp {
+    0% {
+        opacity: 0;
+        transform: translateY(12px);
     }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
-    .card-brand .gdg-top {
-        width: 58px;
-        height: 54px;
+/* =========================================
+   ANIMATED LOGIN & SUPERADMIN CARD
+========================================= */
+
+.login-card,
+.admin-card,
+footer {
+    /* Entrance on page load */
+    animation: cardEntrance 3.00s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+    /* Smooth transition for mouse interactions */
+    transition: 
+        transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+        box-shadow 0.4s ease,
+        border-color 0.4s ease;
+    will-change: transform, opacity;
+}
+
+/* Elegant lift effect on desktop hover */
+@media (hover: hover) {
+    .login-card:hover,
+    .admin-card:hover,
+    footer:hover{
+        transform: translateY(-4px);
+        box-shadow: 
+            0 16px 32px rgba(17, 27, 120, 0.12),
+            0 4px 12px rgba(0, 0, 0, 0.06);
+        border-color: rgba(17, 27, 120, 0.16);
+    }
+}
+
+
+
+/* =========================================
+   ACCESSIBILITY (REDUCED MOTION)
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+    .login-card,
+    .admin-card,
+    footer,
+    .login-card *,
+    footer *,
+    .admin-card * {
+        animation: none !important;
+        transition: none !important;
+        transform: none !important;
     }
 }
