@@ -6,7 +6,7 @@
     <title>Hello World</title>
 </head>
 <body>
-    <h1>Hello, World!</h1>
+    <h1>FINAL CHECK GIN SAYLO SA HTDOCS</h1>
     <p>Law ay si kurt</p>
 </body>
 </html>
