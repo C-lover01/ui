@@ -7,6 +7,6 @@
 </head>
 <body>
     <h1>Hello, World!</h1>
-    <p>Welcome to my first web page.</p>
+    <p>Law ay si kurt</p>
 </body>
 </html>
