@@ -46,14 +46,14 @@ button {
    FULL PAGE SHELL
 ========================================= */
 
-/* .page-shell {
+.page-shell {
     width: 100%;
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background: #fafafa;
-} */
+}
 
 /* =========================================
    MAIN LEADERBOARD (SCROLLER IS UNDER NAV)
