@@ -148,7 +148,7 @@ export class ScanLog {
   /**
    * Retrieve recent scans for a booth directly from Supabase, joined with attendee details.
    */
-  static async getRecentScans(boothId, eventId, limit = 50) {
+  static async getRecentScans(boothId, eventId, limit = 500) {
     if (!isSupabaseConfigured() || !supabase) return [];
     const bId = (boothId || '').trim();
     const eId = eventId ? parseInt(eventId, 10) : null;
@@ -166,43 +166,94 @@ export class ScanLog {
       query = query.eq('eventId', eId);
     }
 
-    const { data: logs, error } = await query;
-    if (error || !logs) {
-      console.error('[Supabase] getRecentScans error:', error?.message);
-      return [];
+    let { data: logs, error } = await query;
+
+    if (error) {
+      let retryQuery = supabase
+        .from('scan_logs')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .limit(limit);
+
+      if (bId) retryQuery = retryQuery.ilike('boothid', bId);
+      if (eId) retryQuery = retryQuery.eq('eventid', eId);
+
+      const retry = await retryQuery;
+      if (retry.error || !retry.data) {
+        console.error('[Supabase] getRecentScans error:', retry.error?.message || error.message);
+        return [];
+      }
+      logs = retry.data;
     }
 
-    // Join with attendee and booth details
-    const results = await Promise.all(
-      logs.map(async log => {
-        const attId = log.attendeeId;
-        const bIdVal = log.boothId;
-        const evIdVal = log.eventId;
+    if (!logs || logs.length === 0) return [];
 
-        const attendee = await Attendee.findById(attId);
-        const booth = await Booth.findById(bIdVal);
-        const timeStr = new Date(log.timestamp).toLocaleTimeString([], {
-          hour: '2-digit',
-          minute: '2-digit'
-        });
-
-        return {
-          id: log.id,
-          attendeeId: attendee ? attendee.qr_code_token || `Attendee${String(attendee.id).padStart(3, '0')}` : `ID-${attId}`,
-          attendeeDbId: attId,
-          attendeeName: attendee ? Attendee.getFullName(attendee) : 'Unknown Attendee',
-          boothId: bIdVal,
-          boothName: booth ? booth.name : bIdVal,
-          eventId: evIdVal,
-          points: log.points,
-          category: log.category,
-          timestamp: timeStr,
-          rawTimestamp: log.timestamp
-        };
-      })
+    // Batch-fetch attendee records & Bevy ticket numbers in 2 queries instead of 2*N queries
+    const uniqueAttendeeIds = Array.from(
+      new Set(logs.map(l => parseInt(l.attendeeId ?? l.attendeeid, 10)).filter(n => !Number.isNaN(n)))
     );
 
-    return results;
+    const attendeeMap = new Map();
+    const ticketMap = new Map();
+
+    if (uniqueAttendeeIds.length > 0) {
+      const { data: attRows } = await supabase
+        .from('attendees')
+        .select('*')
+        .in('id', uniqueAttendeeIds);
+
+      (attRows || []).forEach(att => attendeeMap.set(att.id, att));
+
+      let regQuery = supabase
+        .from('event_attendees')
+        .select('attendee_id, event_id, ticket_number')
+        .in('attendee_id', uniqueAttendeeIds);
+
+      if (eId) {
+        regQuery = regQuery.eq('event_id', eId);
+      }
+
+      const { data: regRows } = await regQuery;
+      (regRows || []).forEach(reg => {
+        if (reg.ticket_number) {
+          ticketMap.set(`${reg.attendee_id}:${reg.event_id}`, reg.ticket_number);
+        }
+      });
+    }
+
+    const booth = bId ? await Booth.findById(bId) : null;
+
+    return logs.map(log => {
+      const attId = parseInt(log.attendeeId ?? log.attendeeid, 10);
+      const bIdVal = log.boothId ?? log.boothid;
+      const evIdVal = parseInt(log.eventId ?? log.eventid, 10);
+
+      const attendee = attendeeMap.get(attId) || null;
+      const ticketNum = ticketMap.get(`${attId}:${evIdVal}`) || null;
+
+      const timeStr = new Date(log.timestamp).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const displayId = attendee
+        ? attendee.qr_code_token || ticketNum || `ID ${String(attendee.id).padStart(3, '0')}`
+        : ticketNum || `ID-${attId}`;
+
+      return {
+        id: log.id,
+        attendeeId: displayId,
+        attendeeDbId: attId,
+        attendeeName: attendee ? Attendee.getFullName(attendee) : 'Unknown Attendee',
+        boothId: bIdVal,
+        boothName: booth ? booth.name : bIdVal,
+        eventId: evIdVal,
+        points: log.points,
+        category: log.category,
+        timestamp: timeStr,
+        rawTimestamp: log.timestamp
+      };
+    });
   }
 
   /**

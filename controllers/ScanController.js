@@ -7,7 +7,13 @@ import { isSupabaseConfigured } from '../config/supabase.js';
 
 export class ScanController {
   /**
-   * Process a QR code scan when an attendee finishes a challenge at a booth.
+   * Process a QR code scan or manual entry when an attendee finishes a challenge at a booth.
+   * Strictly validates:
+   * 1. Attendee exists in registration records (ticket_number, order_number, qr_code_token, email, or ID)
+   * 2. Attendee is registered for the booth's currently selected event (event_attendees)
+   * 3. Attendee has checked in at event registration (checkin_status === 1)
+   * 4. Attendee has not already scanned at this booth for this event
+   * 5. Points are strictly determined by automatic visit tier categories (never manual input)
    */
   static async processScan(req, res) {
     try {
@@ -45,37 +51,73 @@ export class ScanController {
         });
       }
 
-      // Verify or retrieve booth and event from Supabase
+      // Retrieve booth and selected event details from Supabase
       const booth = (await Booth.findById(boothId)) || Booth.getDefault();
       const event = (await Event.findById(eventId)) || Event.getDefault();
 
-      // Find or create the attendee entity in Supabase
-      const attendee = await Attendee.getOrCreate({
-        qrToken: qrCode ? qrCode.trim() : null,
-        name: attendeeName ? attendeeName.trim() : null
+      // Strictly resolve attendee against event_attendees & checkin_status = 1 for selected event
+      const resolution = await Attendee.resolveForEvent({
+        identifier: qrCode ? String(qrCode).trim() : '',
+        name: attendeeName ? String(attendeeName).trim() : '',
+        eventId: event.id
       });
+
+      if (resolution.status === 'not_found') {
+        const displayRef = qrCode ? `"${String(qrCode).trim()}"` : `"${String(attendeeName).trim()}"`;
+        return res.status(404).json({
+          success: false,
+          code: 'NOT_FOUND',
+          message: `Attendee or ticket ${displayRef} was not found in registration records.`
+        });
+      }
+
+      const { attendee, eventAttendee } = resolution;
+      const fullName = Attendee.getFullName(attendee);
+
+      if (resolution.status === 'wrong_event') {
+        return res.status(403).json({
+          success: false,
+          code: 'WRONG_EVENT',
+          attendeeName: fullName,
+          message: `${fullName} is not registered for ${event.event_name}.`
+        });
+      }
+
+      if (resolution.status === 'not_checked_in') {
+        return res.status(403).json({
+          success: false,
+          code: 'NOT_CHECKED_IN',
+          attendeeName: fullName,
+          message: `${fullName} has not checked in at registration for ${event.event_name} yet.`
+        });
+      }
+
+      const displayAttendeeId =
+        attendee.qr_code_token ||
+        (eventAttendee && eventAttendee.ticket_number) ||
+        `ID ${String(attendee.id).padStart(3, '0')}`;
 
       // Check if Attendee has already finished this challenge (UNIQUE_ATTENDEE_BOOTH_EVENT in Supabase)
       const alreadyScanned = await ScanLog.hasScanned(attendee.id, booth.id, event.id);
       if (alreadyScanned) {
-        const fullName = Attendee.getFullName(attendee);
         return res.status(409).json({
           success: false,
           alreadyScanned: true,
-          attendeeId: attendee.qr_code_token || `ID 00${attendee.id}`,
+          code: 'ALREADY_SCANNED',
+          attendeeId: displayAttendeeId,
           attendeeName: fullName,
           message: `${fullName} has already completed the challenge at ${booth.name}!`
         });
       }
 
-      // Count previous completions directly in Supabase
+      // Count previous completions for this booth & event directly in Supabase
       const existingScanCount = await ScanLog.countByBoothAndEvent(booth.id, event.id);
 
-      // Determine points & tier category based on previous scan count:
-      // within first 10 -> 100 PTS ('1-10')
-      // 11 to 50        -> 85 PTS  ('11-50')
-      // 51 to 90        -> 65 PTS  ('51-90')
-      // 91+             -> 45 PTS  ('91+')
+      // Determine points & tier category strictly by visit order (never manual input):
+      // Visits 1 to 10  -> 100 PTS ('1-10')
+      // Visits 11 to 50 -> 85 PTS  ('11-50')
+      // Visits 51 to 90 -> 65 PTS  ('51-90')
+      // Visits 91+      -> 45 PTS  ('91+')
       const tierResult = ScanLog.calculatePointsForScanCount(existingScanCount);
 
       // Store directly in Supabase scan_logs table
@@ -97,12 +139,12 @@ export class ScanController {
 
       return res.status(201).json({
         success: true,
-        message: `✓ ${Attendee.getFullName(attendee)} Scanned (+${tierResult.points} PTS)`,
+        message: `✓ ${fullName} Scanned (+${tierResult.points} PTS)`,
         scan: {
           id: createdLog.id,
-          attendeeId: attendee.qr_code_token || `ID 00${attendee.id}`,
+          attendeeId: displayAttendeeId,
           attendeeDbId: attendee.id,
-          attendeeName: Attendee.getFullName(attendee),
+          attendeeName: fullName,
           points: tierResult.points,
           category: tierResult.category,
           timestamp: timeStr,
@@ -111,8 +153,9 @@ export class ScanController {
         },
         stats: {
           totalScans,
-          currentTierPoints: tierResult.points,
-          currentCategory: tierResult.category,
+          currentTierPoints: nextTierInfo.points,
+          awardedPoints: tierResult.points,
+          currentCategory: nextTierInfo.category,
           nextTierPoints: nextTierInfo.points
         }
       });
@@ -126,7 +169,7 @@ export class ScanController {
   }
 
   /**
-   * Return recent scans feed for current booth directly from Supabase.
+   * Return recent scans feed for current booth and selected event directly from Supabase.
    */
   static async getFeed(req, res) {
     try {
@@ -143,11 +186,12 @@ export class ScanController {
 
       const scans = await ScanLog.getRecentScans(boothId, eventId);
       const totalScans = await ScanLog.countByBoothAndEvent(boothId, eventId);
-      const activeTier = ScanLog.calculatePointsForScanCount(Math.max(0, totalScans - 1));
+      const activeTier = ScanLog.calculatePointsForScanCount(totalScans);
 
       res.json({
         success: true,
         boothId,
+        eventId,
         scans,
         totalScans,
         activeTierPoints: activeTier.points

@@ -29,7 +29,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Session setup with cross-origin iframe cookie support
+// Session setup supporting both local HTTP (localhost) and cross-origin HTTPS iframes
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'devfest-bacolod-2026-secret',
@@ -37,13 +37,28 @@ app.use(
     saveUninitialized: false,
     proxy: true,
     cookie: {
-      secure: true,
-      sameSite: 'none',
+      secure: 'auto',
+      sameSite: 'lax',
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000
     }
   })
 );
+
+// Dynamically upgrade cookie attributes to SameSite=None + Secure when behind HTTPS (iframes / Cloud Run)
+app.use((req, res, next) => {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  if (req.session && req.session.cookie) {
+    if (isHttps) {
+      req.session.cookie.secure = true;
+      req.session.cookie.sameSite = 'none';
+    } else {
+      req.session.cookie.secure = false;
+      req.session.cookie.sameSite = 'lax';
+    }
+  }
+  next();
+});
 
 // Helper to extract clean session ID
 function sanitizeSid(raw) {
@@ -81,8 +96,13 @@ app.use((req, res, next) => {
   }
 });
 
-// Append Secure, SameSite=None, and Partitioned attributes to Set-Cookie headers for modern iframe compatibility
+// Append Secure, SameSite=None, and Partitioned attributes to Set-Cookie headers only on HTTPS requests
 app.use((req, res, next) => {
+  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  if (!isHttps) {
+    return next();
+  }
+
   const originalSetHeader = res.setHeader;
   res.setHeader = function (name, value) {
     if (typeof name === 'string' && name.toLowerCase() === 'set-cookie') {
@@ -92,7 +112,9 @@ app.use((req, res, next) => {
         if (!mod.toLowerCase().includes('secure')) {
           mod += '; Secure';
         }
-        if (!mod.toLowerCase().includes('samesite')) {
+        if (mod.toLowerCase().includes('samesite=')) {
+          mod = mod.replace(/samesite=[a-z]+/i, 'SameSite=None');
+        } else {
           mod += '; SameSite=None';
         }
         if (!mod.toLowerCase().includes('partitioned')) {

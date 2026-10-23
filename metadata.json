@@ -1,7 +1,9 @@
 {
-  "name": "Remix Remix booth-pointsystem-gdgdevfest26",
-  "description": "Imported from GitHub",
-  "permissions": [],
+  "name": "Remix Remix Remix booth-pointsystem-gdgdevfest26",
+  "description": "DevFest Bacolod Booth Point System and QR Scanner",
+  "permissions": [
+    "camera"
+  ],
   "capabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

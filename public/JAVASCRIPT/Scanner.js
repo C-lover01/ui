@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelModalBtn = document.getElementById('cancelModalBtn');
     const manualForm = document.getElementById('manualScanForm');
     const manualAttendeePointsInput = document.getElementById('manualAttendeePoints');
+    const manualTierHint = document.getElementById('manualTierHint');
 
     // Point Matrix Dynamic Elements
     const totalScansCounter = document.getElementById('totalScansCounter');
@@ -259,6 +260,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Automatic Point Allocation Matrix Progress ---
+    // totalScansCount = number of completed scans so far; the NEXT visitor is (totalScansCount + 1)
     function updateMatrixProgress() {
         if (totalScansCounter) {
             totalScansCounter.textContent = totalScansCount;
@@ -269,23 +271,27 @@ document.addEventListener('DOMContentLoaded', () => {
         let currentTierText = '';
         let nextTierText = '';
         let currentTierPoints = 100;
+        let currentColorLabel = 'Green';
 
-        if (totalScansCount <= 10) {
+        if (totalScansCount < 10) {
             activeIndex = 0;
             currentTierPoints = 100;
+            currentColorLabel = 'Green';
             percentage = Math.min(100, Math.round((totalScansCount / 10) * 100));
             currentTierText = `Current Tier Progress (${totalScansCount}/10 Visits)`;
             nextTierText = 'Next Tier: 11-50 Visits (85 PTS · Yellow)';
-        } else if (totalScansCount <= 50) {
+        } else if (totalScansCount < 50) {
             activeIndex = 1;
             currentTierPoints = 85;
+            currentColorLabel = 'Yellow';
             const inTier = totalScansCount - 10;
             percentage = Math.min(100, Math.round((inTier / 40) * 100));
             currentTierText = `Current Tier Progress (${totalScansCount}/50 Visits)`;
             nextTierText = 'Next Tier: 51-90 Visits (65 PTS · Blue)';
-        } else if (totalScansCount <= 90) {
+        } else if (totalScansCount < 90) {
             activeIndex = 2;
             currentTierPoints = 65;
+            currentColorLabel = 'Blue';
             const inTier = totalScansCount - 50;
             percentage = Math.min(100, Math.round((inTier / 40) * 100));
             currentTierText = `Current Tier Progress (${totalScansCount}/90 Visits)`;
@@ -293,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             activeIndex = 3;
             currentTierPoints = 45;
+            currentColorLabel = 'Red';
             percentage = 100;
             currentTierText = `Max Tier Active (${totalScansCount} Visits)`;
             nextTierText = 'Standard Visit Active (45 PTS · Red)';
@@ -329,6 +336,10 @@ document.addEventListener('DOMContentLoaded', () => {
             manualAttendeePointsInput.value = currentTierPoints;
         }
 
+        if (manualTierHint) {
+            manualTierHint.textContent = `Auto-set to current active tier points (+${currentTierPoints} PTS · ${currentColorLabel})`;
+        }
+
         // If currently set to "auto" filter, automatically re-run filter for the new active tier
         if (filterSelect && filterSelect.value === 'auto') {
             filterFeed();
@@ -336,9 +347,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getCurrentTierPoints() {
-        if (totalScansCount <= 10) return 100;
-        if (totalScansCount <= 50) return 85;
-        if (totalScansCount <= 90) return 65;
+        if (totalScansCount < 10) return 100;
+        if (totalScansCount < 50) return 85;
+        if (totalScansCount < 90) return 65;
         return 45;
     }
 
@@ -448,6 +459,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (searchInput) searchInput.addEventListener('input', filterFeed);
 
+    function showScanBanner(message, variant = 'success') {
+        if (!banner || !bannerText) return;
+        banner.classList.remove('is-warning', 'is-error');
+        if (variant === 'warning') {
+            banner.classList.add('is-warning');
+        } else if (variant === 'error') {
+            banner.classList.add('is-error');
+        }
+        bannerText.textContent = message;
+        banner.hidden = false;
+        clearTimeout(scanTimeout);
+        scanTimeout = setTimeout(() => {
+            banner.hidden = true;
+            lastScannedCode = null;
+        }, 4000);
+    }
+
     async function sendScanToBackend(qrCode, attendeeName) {
         try {
             const urlParams = new URLSearchParams(window.location.search);
@@ -468,12 +496,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
 
             if (data.alreadyScanned) {
-                if (bannerText && banner) {
-                    bannerText.textContent = `⚠ ${data.message}`;
-                    banner.hidden = false;
-                    clearTimeout(scanTimeout);
-                    scanTimeout = setTimeout(() => { banner.hidden = true; }, 3500);
-                }
+                showScanBanner(`⚠ ${data.message}`, 'warning');
+                return;
+            }
+
+            if (!response.ok || !data.success) {
+                showScanBanner(`✕ ${data.message || 'Scan could not be verified.'}`, 'error');
                 return;
             }
 
@@ -482,16 +510,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 addScanToFeed(data.scan.attendeeId, data.scan.attendeeName, data.scan.points, data.scan.timestamp);
                 totalScansCount = data.stats.totalScans;
                 updateMatrixProgress();
-
-                if (bannerText && banner) {
-                    bannerText.textContent = data.message;
-                    banner.hidden = false;
-                    clearTimeout(scanTimeout);
-                    scanTimeout = setTimeout(() => { banner.hidden = true; }, 3500);
-                }
+                showScanBanner(data.message, 'success');
             }
         } catch (err) {
             console.error('Scan API error:', err);
+            showScanBanner('✕ Network error communicating with scan server.', 'error');
         }
     }
 
@@ -547,18 +570,13 @@ document.addEventListener('DOMContentLoaded', () => {
         })[m]);
     }
 
-    // Sample pool matching db_gdgevents database attendees
+    // Sample pool matching Bevy ticket numbers & QR tokens in event_attendees / attendees
     const sampleAttendees = [
-        { qr: 'QR-JUAN-001', name: 'Juan Dela Cruz' },
-        { qr: 'QR-MARIA-002', name: 'Maria Santos' },
-        { qr: 'QR-PEDRO-003', name: 'Pedro Reyes' },
-        { qr: 'QR-ANA-004', name: 'Ana Garcia' },
-        { qr: 'QR-CARLO-005', name: 'Carlo Mendoza' },
-        { qr: 'Attendee045', name: 'Joshua James Lim' },
-        { qr: 'Attendee078', name: 'Alyssa Nicole Tan' },
-        { qr: 'Attendee103', name: 'Christian Dave Perez' },
-        { qr: 'Attendee150', name: 'Bea Patricia Gomez' },
-        { qr: 'Attendee210', name: 'John Gabriel Ramos' }
+        { qr: 'TKT-2026-001', name: 'Juan Dela Cruz' },
+        { qr: 'TKT-2026-003', name: 'Pedro Reyes' },
+        { qr: 'TKT-2026-002', name: 'Maria Santos' },
+        { qr: 'TKT-2026-004', name: 'Ana Garcia' },
+        { qr: 'TKT-2026-005', name: 'Carlo Mendoza' }
     ];
     let sampleIndex = 0;
 

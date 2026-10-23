@@ -230,19 +230,24 @@ export class BoothController {
    */
   static logout(req, res) {
     const rawSid = req.sessionID || req.query.sid;
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const cookieOpts = isHttps
+      ? { path: '/', secure: true, sameSite: 'none' }
+      : { path: '/', sameSite: 'lax' };
+
     if (req.sessionStore && req.sessionStore.sessions && rawSid) {
       delete req.sessionStore.sessions[rawSid];
     }
     if (req.session) {
       req.session.destroy((err) => {
         if (err) console.error('[Session] Logout destroy error:', err);
-        res.clearCookie('connect.sid', { path: '/', secure: true, sameSite: 'none' });
-        res.clearCookie('devfest_sid', { path: '/', secure: true, sameSite: 'none' });
+        res.clearCookie('connect.sid', cookieOpts);
+        res.clearCookie('devfest_sid', cookieOpts);
         res.redirect('/LoginBooth.php?message=' + encodeURIComponent('You have been logged out successfully.'));
       });
     } else {
-      res.clearCookie('connect.sid', { path: '/', secure: true, sameSite: 'none' });
-      res.clearCookie('devfest_sid', { path: '/', secure: true, sameSite: 'none' });
+      res.clearCookie('connect.sid', cookieOpts);
+      res.clearCookie('devfest_sid', cookieOpts);
       res.redirect('/LoginBooth.php?message=' + encodeURIComponent('You have been logged out successfully.'));
     }
   }
