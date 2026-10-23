@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tierPointsList = [100, 85, 65, 45];
 
     // --- State ---
-    let totalScansCount = 1; // Initial count matching Kurt Satumbaga
+    let totalScansCount = 0;
     let currentStream = null;
     let isCameraActive = true;
     let lastScannedCode = null;
@@ -448,37 +448,70 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (searchInput) searchInput.addEventListener('input', filterFeed);
 
+    async function sendScanToBackend(qrCode, attendeeName) {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sid = urlParams.get('sid');
+            const headers = { 'Content-Type': 'application/json' };
+            if (sid) headers['X-Session-ID'] = sid;
+
+            const response = await fetch('/api/scan', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    qr_code: qrCode,
+                    attendee_name: attendeeName,
+                    sid
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.alreadyScanned) {
+                if (bannerText && banner) {
+                    bannerText.textContent = `⚠ ${data.message}`;
+                    banner.hidden = false;
+                    clearTimeout(scanTimeout);
+                    scanTimeout = setTimeout(() => { banner.hidden = true; }, 3500);
+                }
+                return;
+            }
+
+            if (data.success && data.scan) {
+                playBeep();
+                addScanToFeed(data.scan.attendeeId, data.scan.attendeeName, data.scan.points, data.scan.timestamp);
+                totalScansCount = data.stats.totalScans;
+                updateMatrixProgress();
+
+                if (bannerText && banner) {
+                    bannerText.textContent = data.message;
+                    banner.hidden = false;
+                    clearTimeout(scanTimeout);
+                    scanTimeout = setTimeout(() => { banner.hidden = true; }, 3500);
+                }
+            }
+        } catch (err) {
+            console.error('Scan API error:', err);
+        }
+    }
+
     function handleScanResult(code) {
         if (!code || lastScannedCode === code) return;
         lastScannedCode = code;
 
-        playBeep();
         let attendeeId = code.trim();
-        let name = 'DevFest Visitor';
-        if (attendeeId.toLowerCase().includes('attendee')) {
-            name = `Attendee ${attendeeId.replace(/\D/g, '') || 'Badge'}`;
-        }
-
-        const pointsToAward = getCurrentTierPoints();
-        addScanToFeed(attendeeId, name, pointsToAward);
-
-        if (bannerText && banner) {
-            bannerText.textContent = `✓ ${name} Scanned (+${pointsToAward} PTS)`;
-            banner.hidden = false;
-        }
+        sendScanToBackend(attendeeId);
 
         clearTimeout(scanTimeout);
         scanTimeout = setTimeout(() => {
-            if (banner) banner.hidden = true;
             lastScannedCode = null;
         }, 3200);
     }
 
     // --- Add Attendee to Recent Scans Feed with COLOR-CODED BADGE ---
-    function addScanToFeed(attendeeId, name, points) {
+    function addScanToFeed(attendeeId, name, points, customTime = null) {
         if (!scansList) return;
-        const now = new Date();
-        const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const time = customTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         const badgeColorClass = getPointsBadgeClass(points);
 
@@ -505,8 +538,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         scansList.prepend(article);
-        totalScansCount++;
-        updateMatrixProgress();
         filterFeed();
     }
 
@@ -516,33 +547,25 @@ document.addEventListener('DOMContentLoaded', () => {
         })[m]);
     }
 
-    // Sample pool for simulate scan
+    // Sample pool matching db_gdgevents database attendees
     const sampleAttendees = [
-        { id: 'Attendee012', name: 'Maria Clara Santos' },
-        { id: 'Attendee045', name: 'Joshua James Lim' },
-        { id: 'Attendee078', name: 'Alyssa Nicole Tan' },
-        { id: 'Attendee103', name: 'Christian Dave Perez' },
-        { id: 'Attendee150', name: 'Bea Patricia Gomez' },
-        { id: 'Attendee210', name: 'John Gabriel Ramos' },
-        { id: 'Attendee288', name: 'Andrea Mae Flores' },
-        { id: 'Attendee340', name: 'Rafael Carlos Diaz' }
+        { qr: 'QR-JUAN-001', name: 'Juan Dela Cruz' },
+        { qr: 'QR-MARIA-002', name: 'Maria Santos' },
+        { qr: 'QR-PEDRO-003', name: 'Pedro Reyes' },
+        { qr: 'QR-ANA-004', name: 'Ana Garcia' },
+        { qr: 'QR-CARLO-005', name: 'Carlo Mendoza' },
+        { qr: 'Attendee045', name: 'Joshua James Lim' },
+        { qr: 'Attendee078', name: 'Alyssa Nicole Tan' },
+        { qr: 'Attendee103', name: 'Christian Dave Perez' },
+        { qr: 'Attendee150', name: 'Bea Patricia Gomez' },
+        { qr: 'Attendee210', name: 'John Gabriel Ramos' }
     ];
     let sampleIndex = 0;
 
     function triggerSimulateScan() {
         const sample = sampleAttendees[sampleIndex % sampleAttendees.length];
         sampleIndex++;
-
-        playBeep();
-        const pointsToAward = getCurrentTierPoints();
-        addScanToFeed(sample.id, sample.name, pointsToAward);
-
-        if (bannerText && banner) {
-            bannerText.textContent = `✓ ${sample.name} Scanned (+${pointsToAward} PTS)`;
-            banner.hidden = false;
-            clearTimeout(scanTimeout);
-            scanTimeout = setTimeout(() => { banner.hidden = true; }, 3000);
-        }
+        sendScanToBackend(sample.qr, sample.name);
     }
 
     if (simScanBtn) simScanBtn.addEventListener('click', triggerSimulateScan);
@@ -571,34 +594,65 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const idInput = document.getElementById('manualAttendeeId');
             const nameInput = document.getElementById('manualAttendeeName');
-            const pointsInput = document.getElementById('manualAttendeePoints');
 
             const id = idInput ? idInput.value.trim() : '';
             const name = nameInput ? nameInput.value.trim() : '';
-            const points = pointsInput ? parseInt(pointsInput.value, 10) || getCurrentTierPoints() : getCurrentTierPoints();
 
             if (!id) return;
 
-            playBeep();
-            const displayName = name || `Attendee (${id})`;
-            addScanToFeed(id, displayName, points);
-
-            if (bannerText && banner) {
-                bannerText.textContent = `✓ ${displayName} Awarded (+${points} PTS)`;
-                banner.hidden = false;
-                setTimeout(() => { banner.hidden = true; }, 3000);
-            }
-
+            sendScanToBackend(id, name);
             closeModal();
         });
     }
 
-    // Initialize initial item badge color
-    const initialItemBadge = document.querySelector('.scan-item .points-badge');
-    if (initialItemBadge) {
-        initialItemBadge.className = 'points-badge points-badge-100';
+    // Load initial feed and count from backend database
+    async function loadInitialFeed() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sid = urlParams.get('sid') || sessionStorage.getItem('devfest_sid') || localStorage.getItem('devfest_sid');
+            const headers = {};
+            if (sid) headers['X-Session-ID'] = sid;
+
+            const res = await fetch('/api/scans/feed' + (sid ? '?sid=' + encodeURIComponent(sid) : ''), { headers });
+            const data = await res.json();
+            if (data.success && Array.isArray(data.scans)) {
+                if (scansList) scansList.innerHTML = '';
+                if (data.scans.length > 0) {
+                    data.scans.slice().reverse().forEach(scan => {
+                        addScanToFeed(scan.attendeeId, scan.attendeeName, scan.points, scan.timestamp);
+                    });
+                }
+                totalScansCount = typeof data.totalScans === 'number' ? data.totalScans : 0;
+                updateMatrixProgress();
+            }
+        } catch (e) {
+            console.warn('Could not load initial scan feed:', e);
+            updateMatrixProgress();
+        }
     }
 
-    updateMatrixProgress();
+    loadInitialFeed();
     startCamera();
+
+    // Error handling: Prevent Backspace key from triggering browser back navigation outside editable fields
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Backspace' || event.keyCode === 8) {
+            const target = event.target;
+            const isEditable =
+                (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) &&
+                !target.readOnly &&
+                !target.disabled;
+            if (!isEditable) {
+                event.preventDefault();
+            }
+        }
+    });
+
+    // Error handling: Prevent navigating back to login when already logged in
+    if (window.history && window.history.pushState) {
+        window.history.pushState(null, '', window.location.href);
+        window.addEventListener('popstate', () => {
+            window.history.pushState(null, '', window.location.href);
+        });
+    }
 });

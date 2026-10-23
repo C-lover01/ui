@@ -1,0 +1,71 @@
+<header class="topbar">
+
+    <a class="brand" href="<%= (typeof isLoggedIn !== 'undefined' && isLoggedIn) ? ('/EventChoices.php' + ((typeof sid !== 'undefined' && sid) ? ('?sid=' + encodeURIComponent(sid)) : '')) : '/LoginBooth.php' %>"
+       aria-label="DevFest Bacolod 2026 home">
+
+        <img src="/IMG/GDG_LOGO.png"
+             alt="DevFest Logo"
+             class="gdg-logo">
+
+        <span class="brand-copy">
+            <span class="brand-name">DevFest</span>
+            <span class="brand-location">Bacolod 2026</span>
+        </span>
+
+    </a>
+
+    <button
+        class="menu-toggle"
+        id="menuToggle"
+        type="button"
+        aria-label="Toggle navigation"
+        aria-controls="navLinks"
+        aria-expanded="false">
+        ☰
+    </button>
+
+    <nav class="nav-links" id="navLinks" aria-label="Main navigation">
+
+        <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
+            <a href="/EventChoices.php<%= (typeof sid !== 'undefined' && sid) ? ('?sid=' + encodeURIComponent(sid)) : '' %>"
+               class="<%= (typeof currentPage !== 'undefined' && (currentPage === 'EventChoices.php' || currentPage === 'EventChoices')) ? 'active' : '' %>"
+               <%= (typeof currentPage !== 'undefined' && (currentPage === 'EventChoices.php' || currentPage === 'EventChoices')) ? 'aria-current="page"' : '' %>>
+                Track Selection
+            </a>
+
+            <a href="/scanner.php<%= (typeof sid !== 'undefined' && sid) ? ('?sid=' + encodeURIComponent(sid)) : '' %>"
+               class="<%= (typeof currentPage !== 'undefined' && (currentPage === 'scanner.php' || currentPage === 'scanner')) ? 'active' : '' %>"
+               <%= (typeof currentPage !== 'undefined' && (currentPage === 'scanner.php' || currentPage === 'scanner')) ? 'aria-current="page"' : '' %>>
+                Scanner
+            </a>
+        <% } else { %>
+            <a href="/LoginBooth.php<%= (typeof sid !== 'undefined' && sid) ? ('?sid=' + encodeURIComponent(sid)) : '' %>"
+               class="<%= (typeof currentPage !== 'undefined' && (currentPage === 'LoginBooth.php' || currentPage === 'LoginBooth')) ? 'active' : '' %>"
+               <%= (typeof currentPage !== 'undefined' && (currentPage === 'LoginBooth.php' || currentPage === 'LoginBooth')) ? 'aria-current="page"' : '' %>>
+                Booth Portal
+            </a>
+
+            <a href="/SuperAdmin.php<%= (typeof sid !== 'undefined' && sid) ? ('?sid=' + encodeURIComponent(sid)) : '' %>"
+               class="<%= (typeof currentPage !== 'undefined' && (currentPage === 'SuperAdmin.php' || currentPage === 'SuperAdmin')) ? 'active' : '' %>"
+               <%= (typeof currentPage !== 'undefined' && (currentPage === 'SuperAdmin.php' || currentPage === 'SuperAdmin')) ? 'aria-current="page"' : '' %>>
+                SuperAdmin
+            </a>
+        <% } %>
+
+        <a href="/Leaderboard.php<%= (typeof sid !== 'undefined' && sid) ? ('?sid=' + encodeURIComponent(sid)) : '' %>"
+           class="<%= (typeof currentPage !== 'undefined' && (currentPage === 'Leaderboard.php' || currentPage === 'Leaderboard')) ? 'active' : '' %>"
+           <%= (typeof currentPage !== 'undefined' && (currentPage === 'Leaderboard.php' || currentPage === 'Leaderboard')) ? 'aria-current="page"' : '' %>>
+            Leaderboard
+        </a>
+
+        <% if (typeof isLoggedIn !== 'undefined' && isLoggedIn) { %>
+            <a href="/logout.php<%= (typeof sid !== 'undefined' && sid) ? ('?sid=' + encodeURIComponent(sid)) : '' %>"
+               class="logout-link"
+               style="color: #ea4335;">
+                Logout
+            </a>
+        <% } %>
+
+    </nav>
+
+</header>

@@ -1,30 +1,3 @@
-<?php
-/**
- * EventChoices.php — DevFest Bacolod 2026 Event & Track Selection
- * Directed here immediately upon pressing 'LOGIN BOOTH' on LoginBooth.php
- */
-
-// Show all PHP errors instead of a blank white screen
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Handle form submission to scanner.php
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $selected_track = isset($_POST['track']) ? trim($_POST['track']) : 'students';
-    $_SESSION['selected_track'] = $selected_track;
-    
-    // Redirects to scanner.php
-    header('Location: scanner.php?track=' . urlencode($selected_track));
-    exit;
-}
-
-$current_track = $_SESSION['selected_track'] ?? 'students';
-?>
 <!DOCTYPE html>
 <html lang="en">
 
@@ -35,7 +8,7 @@ $current_track = $_SESSION['selected_track'] ?? 'students';
     <title>DevFest Bacolod 2026 - Event Choices</title>
 
     <!-- Browser tab icon -->
-    <link rel="icon" type="image/png" href="IMG/GDGTOP.png?v=2">
+    <link rel="icon" type="image/png" href="/IMG/GDGTOP.png?v=2">
 
     <!-- Google Fonts for DevFest Typography -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -43,28 +16,16 @@ $current_track = $_SESSION['selected_track'] ?? 'students';
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Page stylesheets -->
-    <link rel="stylesheet" href="CSS/EventChoices.css">
-    <link rel="stylesheet" href="CSS/nav.css">
+    <link rel="stylesheet" href="/CSS/EventChoices.css">
+    <link rel="stylesheet" href="/CSS/nav.css">
 </head>
 
 <body>
 
 <div class="devfest-page">
     
-    <!-- Shared navbar with automatic fallback if nav.php is absent -->
-    <?php 
-    if (file_exists(__DIR__ . '/nav.php')) {
-        include __DIR__ . '/nav.php';
-    } else {
-    ?>
-    <header class="devfest-header">
-        <nav class="devfest-nav">
-            <a href="LoginBooth.php" class="btn-booth-portal">Booth Portal</a>
-            <a href="SuperAdmin.php" class="nav-link">SuperAdmin</a>
-            <a href="Leaderboard.php" class="nav-link">Leaderboard</a>
-        </nav>
-    </header>
-    <?php } ?>
+    <!-- Shared navbar -->
+    <%- include('partials/nav', { currentPage: 'EventChoices.php', isLoggedIn: true, sid: (typeof sid !== 'undefined' ? sid : '') }) %>
 
     <!-- Main Stage with Vibrant DevFest Gradient Mesh -->
     <main class="devfest-stage">
@@ -101,13 +62,15 @@ $current_track = $_SESSION['selected_track'] ?? 'students';
             </div>
 
             <!-- Track Selection Form -->
-            <form method="POST" action="scanner.php" id="eventChoicesForm">
+            <form method="POST" action="/scanner.php" id="eventChoicesForm">
+                <input type="hidden" name="event_id" id="selectedEventId" value="<%= (typeof eventId !== 'undefined' && eventId) ? eventId : ((track === 'professionals') ? 2 : 1) %>">
+                <input type="hidden" name="sid" value="<%= (typeof sid !== 'undefined' && sid) ? sid : '' %>">
                 
                 <div class="track-selection-grid">
                     
                     <!-- Card 1: STUDENTS DEV DAY -->
-                    <label class="track-card track-card-students <?php echo ($current_track === 'students') ? 'active' : ''; ?>" id="cardStudents">
-                        <input type="radio" name="track" value="students" class="track-radio" <?php echo ($current_track === 'students') ? 'checked' : ''; ?>>
+                    <label class="track-card track-card-students <%= (track === 'students') ? 'active' : '' %>" id="cardStudents" data-event-id="1">
+                        <input type="radio" name="track" value="students" class="track-radio" data-event-id="1" <%= (track === 'students') ? 'checked' : '' %>>
                         <div class="selection-check">✓</div>
 
                         <div class="track-icon-wrapper">
@@ -129,8 +92,8 @@ $current_track = $_SESSION['selected_track'] ?? 'students';
                     </label>
 
                     <!-- Card 2: PROFESSIONALS NETWORK DAY -->
-                    <label class="track-card track-card-professionals <?php echo ($current_track === 'professionals') ? 'active' : ''; ?>" id="cardProfessionals">
-                        <input type="radio" name="track" value="professionals" class="track-radio" <?php echo ($current_track === 'professionals') ? 'checked' : ''; ?>>
+                    <label class="track-card track-card-professionals <%= (track === 'professionals') ? 'active' : '' %>" id="cardProfessionals" data-event-id="2">
+                        <input type="radio" name="track" value="professionals" class="track-radio" data-event-id="2" <%= (track === 'professionals') ? 'checked' : '' %>>
                         <div class="selection-check">✓</div>
 
                         <div class="track-icon-wrapper">
@@ -178,9 +141,10 @@ $current_track = $_SESSION['selected_track'] ?? 'students';
 </div>
 
 <script>
-// Interactive Card Selection
+// Interactive Card Selection and Event Binding
 const cardStudents = document.getElementById('cardStudents');
 const cardProfessionals = document.getElementById('cardProfessionals');
+const selectedEventIdInput = document.getElementById('selectedEventId');
 
 if (cardStudents && cardProfessionals) {
     cardStudents.addEventListener('click', function() {
@@ -188,6 +152,7 @@ if (cardStudents && cardProfessionals) {
         cardProfessionals.classList.remove('active');
         const radio = cardStudents.querySelector('input[type="radio"]');
         if (radio) radio.checked = true;
+        if (selectedEventIdInput) selectedEventIdInput.value = "1";
     });
 
     cardProfessionals.addEventListener('click', function() {
@@ -195,9 +160,30 @@ if (cardStudents && cardProfessionals) {
         cardStudents.classList.remove('active');
         const radio = cardProfessionals.querySelector('input[type="radio"]');
         if (radio) radio.checked = true;
+        if (selectedEventIdInput) selectedEventIdInput.value = "2";
+    });
+}
+
+// Error handling: Prevent Backspace key from navigating back when logged in
+window.addEventListener('keydown', function(event) {
+    if (event.key === 'Backspace' || event.keyCode === 8) {
+        const target = event.target;
+        const isEditable = (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) &&
+                           !target.readOnly && !target.disabled;
+        if (!isEditable) {
+            event.preventDefault();
+        }
+    }
+});
+
+// Error handling: Prevent browser back button to login page when authenticated
+if (window.history && window.history.pushState) {
+    window.history.pushState(null, '', window.location.href);
+    window.addEventListener('popstate', function() {
+        window.history.pushState(null, '', window.location.href);
     });
 }
 </script>
-
+<script src="/JAVASCRIPT/nav.js" defer></script>
 </body>
 </html>
