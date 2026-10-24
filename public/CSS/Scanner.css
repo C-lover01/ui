@@ -517,50 +517,9 @@ body {
     margin-top: 22px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
     flex-wrap: wrap;
-}
-
-.sim-scan-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: 1.5px solid var(--line);
-    border-radius: 14px;
-    background: #f4f6fc;
-    color: var(--navy);
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(17, 27, 120, 0.04);
-    transition: background 0.2s, transform 0.15s, border-color 0.2s, box-shadow 0.2s;
-    font-family: inherit;
-}
-
-.sim-scan-btn:hover {
-    background: #e8ecf8;
-    border-color: var(--navy);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(17, 27, 120, 0.1);
-}
-
-.sim-scan-btn:active {
-    transform: translateY(0);
-}
-
-.sim-scan-btn svg {
-    width: 16px;
-    height: 16px;
-    color: #fbbc04;
-    fill: #fbbc04;
-}
-
-.sim-scan-btn-overlay {
-    background: #ffffff;
-    border: none;
-    margin-top: 6px;
 }
 
 .manual-btn {
@@ -1345,7 +1304,6 @@ footer {
         align-items: stretch;
         gap: 10px;
     }
-    .sim-scan-btn,
     .manual-btn {
         width: 100%;
         justify-content: center;

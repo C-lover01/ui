@@ -32,7 +32,10 @@ export class ScanController {
       }
 
       const boothId = req.session.booth_IDs || req.session.booth_id || req.session.boothId;
-      const eventId = req.session.event_id || req.session.eventId || 1;
+      const rawEventId = req.body.event_id || req.query.event_id || req.session.event_id || req.session.eventId || 1;
+      const eventId = parseInt(rawEventId, 10) || 1;
+      req.session.event_id = eventId;
+      req.session.eventId = eventId;
 
       if (!boothId) {
         return res.status(403).json({
@@ -182,7 +185,10 @@ export class ScanController {
         return res.status(403).json({ success: false, scans: [], totalScans: 0, message: 'No assigned booth found' });
       }
 
-      const eventId = req.session.event_id || req.session.eventId || 1;
+      const rawEventId = req.query.event_id || req.session.event_id || req.session.eventId || 1;
+      const eventId = parseInt(rawEventId, 10) || 1;
+      req.session.event_id = eventId;
+      req.session.eventId = eventId;
 
       const scans = await ScanLog.getRecentScans(boothId, eventId);
       const totalScans = await ScanLog.countByBoothAndEvent(boothId, eventId);

@@ -206,6 +206,9 @@ export class BoothController {
 
     const track = req.query.track || req.session.selected_track || (eventId === 2 ? 'professionals' : 'students');
     req.session.selected_track = track;
+    if (req.session.save) {
+      req.session.save(() => {});
+    }
 
     const initialScans = await ScanLog.getRecentScans(boothId, eventId);
     const totalScans = await ScanLog.countByBoothAndEvent(boothId, eventId);

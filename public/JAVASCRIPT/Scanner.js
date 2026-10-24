@@ -3,11 +3,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Elements ---
     const video = document.getElementById('scannerVideo');
+    const qrCanvas = document.getElementById('qrCanvas');
+    const qrCtx = qrCanvas ? qrCanvas.getContext('2d', { willReadFrequently: true }) : null;
     const cameraSelect = document.getElementById('cameraSelect');
     const overlay = document.getElementById('cameraStatusOverlay');
     const statusText = document.getElementById('cameraStatusText');
-    const simScanBtn = document.getElementById('simScanBtn');
-    const simScanBtnFooter = document.getElementById('simScanBtnFooter');
     const banner = document.getElementById('scanSuccessBanner');
     const bannerText = document.getElementById('scanSuccessText');
     const scansList = document.getElementById('scansList');
@@ -187,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
                 showOverlay('Camera blocked. Please allow camera permissions in your browser bar.');
             } else {
-                showOverlay('Camera unavailable: Please use Simulated Scan or Manual Entry.');
+                showOverlay('Camera unavailable: Please use Manual Entry.');
             }
         }
     }
@@ -238,25 +238,64 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function decodeViaCanvas() {
+        if (!video || !qrCanvas || !qrCtx || typeof window.jsQR !== 'function') return;
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (!vw || !vh) return;
+
+        // Downscale high-res frames to max 640px width for fast, low-CPU QR decoding
+        const scale = vw > 640 ? 640 / vw : 1;
+        const cw = Math.round(vw * scale);
+        const ch = Math.round(vh * scale);
+
+        if (qrCanvas.width !== cw || qrCanvas.height !== ch) {
+            qrCanvas.width = cw;
+            qrCanvas.height = ch;
+        }
+
+        qrCtx.drawImage(video, 0, 0, cw, ch);
+        const imageData = qrCtx.getImageData(0, 0, cw, ch);
+        const qrResult = window.jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth'
+        });
+
+        if (qrResult && qrResult.data) {
+            handleScanResult(qrResult.data);
+        }
+    }
+
     function startBarcodeDetection() {
-        if (!('BarcodeDetector' in window)) return;
         if (detectInterval) clearInterval(detectInterval);
 
-        try {
-            barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
-            detectInterval = setInterval(async () => {
-                if (video && video.readyState >= 2 && isCameraActive) {
-                    try {
-                        const barcodes = await barcodeDetector.detect(video);
-                        if (barcodes.length > 0) {
-                            handleScanResult(barcodes[0].rawValue);
-                        }
-                    } catch (e) {}
-                }
-            }, 300);
-        } catch (e) {
-            console.warn('BarcodeDetector error:', e);
+        let nativeSupported = false;
+        if ('BarcodeDetector' in window) {
+            try {
+                barcodeDetector = new BarcodeDetector({ formats: ['qr_code'] });
+                nativeSupported = true;
+            } catch (e) {
+                nativeSupported = false;
+            }
         }
+
+        detectInterval = setInterval(async () => {
+            if (!video || video.readyState < 2 || !isCameraActive) return;
+
+            if (nativeSupported && barcodeDetector) {
+                try {
+                    const barcodes = await barcodeDetector.detect(video);
+                    if (barcodes.length > 0 && barcodes[0].rawValue) {
+                        handleScanResult(barcodes[0].rawValue);
+                        return;
+                    }
+                } catch (e) {
+                    // Windows Desktop Chrome exposes BarcodeDetector without OS backend; fall back to jsQR
+                    nativeSupported = false;
+                }
+            }
+
+            decodeViaCanvas();
+        }, 250);
     }
 
     // --- Automatic Point Allocation Matrix Progress ---
@@ -480,6 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const sid = urlParams.get('sid');
+            const eventId = urlParams.get('event_id');
             const headers = { 'Content-Type': 'application/json' };
             if (sid) headers['X-Session-ID'] = sid;
 
@@ -489,6 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     qr_code: qrCode,
                     attendee_name: attendeeName,
+                    event_id: eventId || undefined,
                     sid
                 })
             });
@@ -570,25 +611,6 @@ document.addEventListener('DOMContentLoaded', () => {
         })[m]);
     }
 
-    // Sample pool matching Bevy ticket numbers & QR tokens in event_attendees / attendees
-    const sampleAttendees = [
-        { qr: 'TKT-2026-001', name: 'Juan Dela Cruz' },
-        { qr: 'TKT-2026-003', name: 'Pedro Reyes' },
-        { qr: 'TKT-2026-002', name: 'Maria Santos' },
-        { qr: 'TKT-2026-004', name: 'Ana Garcia' },
-        { qr: 'TKT-2026-005', name: 'Carlo Mendoza' }
-    ];
-    let sampleIndex = 0;
-
-    function triggerSimulateScan() {
-        const sample = sampleAttendees[sampleIndex % sampleAttendees.length];
-        sampleIndex++;
-        sendScanToBackend(sample.qr, sample.name);
-    }
-
-    if (simScanBtn) simScanBtn.addEventListener('click', triggerSimulateScan);
-    if (simScanBtnFooter) simScanBtnFooter.addEventListener('click', triggerSimulateScan);
-
     // --- Manual Entry Modal ---
     if (manualBtn && modal) {
         manualBtn.addEventListener('click', () => {
@@ -628,10 +650,16 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const urlParams = new URLSearchParams(window.location.search);
             const sid = urlParams.get('sid') || sessionStorage.getItem('devfest_sid') || localStorage.getItem('devfest_sid');
+            const eventId = urlParams.get('event_id');
             const headers = {};
             if (sid) headers['X-Session-ID'] = sid;
 
-            const res = await fetch('/api/scans/feed' + (sid ? '?sid=' + encodeURIComponent(sid) : ''), { headers });
+            const feedParams = new URLSearchParams();
+            if (sid) feedParams.set('sid', sid);
+            if (eventId) feedParams.set('event_id', eventId);
+            const qs = feedParams.toString();
+
+            const res = await fetch('/api/scans/feed' + (qs ? '?' + qs : ''), { headers });
             const data = await res.json();
             if (data.success && Array.isArray(data.scans)) {
                 if (scansList) scansList.innerHTML = '';

@@ -88,6 +88,11 @@ app.use((req, res, next) => {
       if (!err && sessData && sessData.isLoggedIn) {
         Object.assign(req.session, sessData);
         req.sessionID = sid;
+        // Override save() because express-session's internal this.id is read-only on cookie-less iframe requests
+        req.session.save = function (cb) {
+          req.sessionStore.set(sid, req.session, cb || (() => {}));
+          return req.session;
+        };
       }
       next();
     });
